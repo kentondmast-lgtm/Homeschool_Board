@@ -105,12 +105,17 @@ is already done.
 5. **Add a persistent disk** (Render dashboard → your service → Disks):
    mount path `/var/data`, 1 GB is plenty.
 
-6. **Environment variables** (Render dashboard → Environment):
+6. **Environment variables** (Render dashboard → Environment). `DATA_DIR` is
+   an exact value to copy in as-is. `ADMIN_USERNAME` and `ADMIN_PASSWORD` are
+   **not** — the text on the right below is a description of what to invent,
+   not something to paste in literally. Make up your own private
+   username/password and type those in instead:
+
    | Key | Value |
    |---|---|
-   | `DATA_DIR` | `/var/data` |
-   | `ADMIN_USERNAME` | pick one |
-   | `ADMIN_PASSWORD` | pick a real password |
+   | `DATA_DIR` | `/var/data` (copy this in exactly) |
+   | `ADMIN_USERNAME` | ⚠️ invent your own — do not use this cell's text |
+   | `ADMIN_PASSWORD` | ⚠️ invent your own — do not use this cell's text |
 
    Don't set `PORT` — Render sets it for you, and the app already honors it.
 
