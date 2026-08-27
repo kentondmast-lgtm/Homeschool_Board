@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSyncedState, addTask, toggleTask, deleteTask, addFamilyItem, toggleFamilyItem, deleteFamilyItem } from '../api.js';
-import { SUBJECTS, dateLabel } from '../utils.js';
+import { SUBJECTS, WEEKDAYS, dateLabel, buildMonthGrid } from '../utils.js';
 import AddTaskCard from '../components/AddTaskCard.jsx';
 import FamilyBoard from '../components/FamilyBoard.jsx';
 
@@ -8,8 +8,16 @@ export default function AdminPhone() {
   const state = useSyncedState();
   const [activeId, setActiveId] = useState(1);
   const [familyOn, setFamilyOn] = useState({});
+  const [view, setView] = useState('today');
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const active = state ? (state.students.find((s) => s.id === activeId) || state.students[0]) : null;
+  const monthGrid = useMemo(() => (active ? buildMonthGrid(now, active.week) : []), [now, active]);
 
   if (!state || !active) {
     return (
@@ -60,42 +68,100 @@ export default function AdminPhone() {
         ))}
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 12, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)', marginTop: 4 }}>{active.name}'s tasks today</div>
-
-        {active.tasks.map((t) => (
-          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: 'var(--color-surface)' }}>
-            <div
-              onClick={() => toggleTask(active.id, t.id, !t.done)}
-              style={{ width: 18, height: 18, flex: 'none', border: `2px solid ${active.color}`, background: t.done ? active.color : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              {t.done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" strokeWidth="3.6"><path d="M4 12l6 6L20 6"></path></svg>}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.title}</div>
-              <div style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>{t.subject} · {dateLabel(t.date)} · {t.time}</div>
-            </div>
-            <button
-              style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }}
-              onClick={() => deleteTask(active.id, t.id)}
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-            </button>
-          </div>
+      <div style={{ padding: '0 16px 8px' }} className="seg">
+        {['today', 'week', 'month'].map((v) => (
+          <label key={v} className="seg-opt" style={{ flex: 1, justifyContent: 'center' }}>
+            <input type="radio" checked={view === v} onChange={() => setView(v)} />
+            {v[0].toUpperCase() + v.slice(1)}
+          </label>
         ))}
-        {active.tasks.length === 0 && (
-          <div style={{ fontSize: 12, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)', padding: '8px 4px' }}>No tasks yet today.</div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {view === 'today' && (
+          <>
+            <div style={{ fontSize: 12, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)', marginTop: 4 }}>{active.name}'s tasks today</div>
+
+            {active.tasks.map((t) => (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: 'var(--color-surface)' }}>
+                <div
+                  onClick={() => toggleTask(active.id, t.id, !t.done)}
+                  style={{ width: 18, height: 18, flex: 'none', border: `2px solid ${active.color}`, background: t.done ? active.color : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {t.done && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--color-bg)" strokeWidth="3.6"><path d="M4 12l6 6L20 6"></path></svg>}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)', textDecoration: t.done ? 'line-through' : 'none' }}>{t.title}</div>
+                  <div style={{ fontSize: 11, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>{t.subject} · {dateLabel(t.date)} · {t.time}</div>
+                </div>
+                <button
+                  style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }}
+                  onClick={() => deleteTask(active.id, t.id)}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+              </div>
+            ))}
+            {active.tasks.length === 0 && (
+              <div style={{ fontSize: 12, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)', padding: '8px 4px' }}>No tasks yet today.</div>
+            )}
+
+            <AddTaskCard
+              studentName={active.name}
+              subjectOptions={subjectOptions}
+              defaultDate={today}
+              onSubmit={(form) => {
+                const subject = (form.newSubject || '').trim() || form.subject;
+                addTask(active.id, { subject, title: form.title, time: form.time, date: form.date });
+              }}
+            />
+          </>
         )}
 
-        <AddTaskCard
-          studentName={active.name}
-          subjectOptions={subjectOptions}
-          defaultDate={today}
-          onSubmit={(form) => {
-            const subject = (form.newSubject || '').trim() || form.subject;
-            addTask(active.id, { subject, title: form.title, time: form.time, date: form.date });
-          }}
-        />
+        {view === 'week' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
+            {active.week.map((d, i) => (
+              <div key={d.label} style={{ background: 'var(--color-surface)', padding: 6, display: 'flex', flexDirection: 'column', gap: 4, outline: i === 0 ? `1.5px solid ${active.color}` : 'none' }}>
+                <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: 9.5, letterSpacing: '.04em', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>{d.label}</div>
+                {d.items.map((it, idx) => (
+                  <div key={idx} style={{ fontSize: 9.5, padding: '3px 4px', background: 'var(--color-bg)', color: 'var(--color-text)' }}>{it}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {view === 'month' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, fontFamily: 'var(--font-heading)', color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>
+              {now.toLocaleDateString([], { month: 'long', year: 'numeric' })}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 1, background: 'var(--color-divider)' }}>
+              {WEEKDAYS.map((wd) => (
+                <div key={wd} style={{ background: 'var(--color-bg)', padding: '3px 2px', fontSize: 8, textAlign: 'center', letterSpacing: '.02em', textTransform: 'uppercase', color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>{wd[0]}</div>
+              ))}
+              {monthGrid.map((c, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: 'var(--color-bg)', minHeight: 38, padding: '2px 3px', display: 'flex', flexDirection: 'column', gap: 1,
+                    outline: c.isToday ? `1.5px solid ${active.color}` : 'none',
+                  }}
+                >
+                  {!c.blank && (
+                    <>
+                      <div style={{ fontSize: 8.5, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>{c.day}</div>
+                      {c.items.slice(0, 1).map((chip, i2) => (
+                        <div key={i2} style={{ fontSize: 6.5, padding: '1px 2px', background: active.color, color: 'var(--color-bg)', width: 'fit-content' }}>{chip}</div>
+                      ))}
+                      {c.items.length > 1 && <div style={{ fontSize: 6.5, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>+{c.items.length - 1}</div>}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="hr" style={{ margin: '6px 0' }} />
         <div style={{ fontSize: 12, color: 'color-mix(in srgb, var(--color-text) 55%, transparent)' }}>Family board</div>
