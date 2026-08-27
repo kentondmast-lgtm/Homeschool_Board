@@ -29,57 +29,49 @@ public internet.** The first time the wall iPad tries to add/delete/check
 off something, its browser will prompt for this login once and then
 remember it.
 
-## Current deployment
+## Live deployment
 
-Right now this runs as an always-on Windows service (`HomeschoolBoard`,
-installed via NSSM — see `install-service.ps1`) on this PC, so it survives
-reboots and doesn't need anyone logged in. This is meant as a **temporary
-home**: since all app state lives in `server/data.json` and there's nothing
-Windows-specific in the code, moving it later to a Raspberry Pi or NAS is
-just: copy the project folder over, run `npm install && npm run build`, and
-set up the equivalent auto-start mechanism there (systemd on a Pi, a Docker
-container on a NAS) instead of the NSSM service.
+This runs on Render at **https://homeschool-board.onrender.com** — reachable
+from anywhere, not just the home WiFi. `ADMIN_USERNAME`/`ADMIN_PASSWORD` are
+set there, so `/admin` and all edits require that login (viewing the wall
+display does not).
 
-**iPad URLs** (this PC's current LAN IP — see note below):
-
-- Wall display: `http://192.168.1.24:4000/`
-- Admin: `http://192.168.1.24:4000/admin`
-
-The parent PIN on the wall display is `1234`.
-
-> **This IP can change.** It's assigned by your router via DHCP, not fixed.
-> If either iPad stops connecting, re-run this on the host PC to get the
-> current IP and update the two bookmarks:
-> ```powershell
-> Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -like '192.168.*' }
-> ```
-> To stop this from happening, set a DHCP reservation for this PC in your
-> router's admin page (pin its MAC address to `192.168.1.24` permanently).
+- Wall display: `https://homeschool-board.onrender.com/`
+- Admin: `https://homeschool-board.onrender.com/admin`
 
 ### Setting up the wall iPad
 
-1. Open Safari to the wall display URL above.
-2. Plug the iPad in and disable auto-lock: **Settings → Display & Brightness
+For a true fullscreen kiosk look (no Safari address bar at all):
+
+1. Rotate the iPad to landscape, open Safari to the wall display URL above.
+2. **Share → Add to Home Screen** → name it → Add.
+3. Launch it from that **home screen icon**, not from Safari — this opens
+   fullscreen with no browser chrome.
+4. Lock the orientation: open Control Center (swipe down from the top-right
+   corner) and tap the orientation-lock icon while the iPad is already
+   sitting in landscape — despite being labeled "Portrait Orientation
+   Lock," it just freezes whichever orientation you're currently in.
+5. Plug the iPad in and disable auto-lock: **Settings → Display & Brightness
    → Auto-Lock → Never**.
-3. Turn on **Guided Access** so it can't be swiped away from the board:
-   **Settings → Accessibility → Guided Access → On**, set a passcode there
-   (this is separate from the board's own `1234` PIN). Then triple-click the
-   side/home button while Safari is open on the board to start Guided Access.
+6. Optionally, turn on **Guided Access** so it can't be swiped away to the
+   home screen or into another app: **Settings → Accessibility → Guided
+   Access → On**, set a passcode there (separate from the board's own
+   `1234` PIN), then triple-click the side/top button while the board is
+   open to start it.
 
 ### Setting up mom's iPad
 
-1. Open Safari to the admin URL above.
+1. Open Safari to the admin URL above. It'll prompt for the
+   `ADMIN_USERNAME`/`ADMIN_PASSWORD` login once — Safari can save it in
+   Keychain so it only asks the first time.
 2. Tap **Share → Add to Home Screen**. It'll launch full-screen without
    Safari's address bar, like a regular app.
 
-## Deploying to the cloud (Render)
+## Deploying to Render (reference — already done above)
 
-This makes the board reachable from anywhere (not just your home WiFi) and
-removes the "laptop has to stay on and keep the same IP" problem entirely.
-The steps below need your own GitHub and Render accounts — I can't create
-accounts, sign up for a paid plan, or push to a repo you own on your behalf,
-so those specific steps are on you; everything else (the code, the config)
-is already done.
+These are the steps that were followed to stand up the live deployment
+above. Keeping them here for redeploying from scratch (a new Render service,
+a fork, etc.) rather than as something to redo.
 
 1. **Push this project to GitHub** (needs your GitHub account):
    ```bash
@@ -124,15 +116,19 @@ is already done.
    two iPads instead of the LAN IP.
 
 After this, redeploying is just `git push` — Render rebuilds and restarts
-automatically. `server/data.json` on your local Windows service and the
-Render disk are two separate copies of the data; they don't sync with each
-other, so pick one as the real deployment and treat the other as retired.
+automatically.
 
-## Managing the service (on the host PC)
+## Retired: local Windows service
+
+Before Render, this ran as an always-on Windows service (`HomeschoolBoard`,
+via NSSM — see `install-service.ps1`) on a home PC. It's no longer the live
+deployment (Render is), but it's left installed as a fallback. Its data in
+`server/data.json` is a separate, stale copy — not synced with Render.
 
 ```powershell
 Get-Service HomeschoolBoard          # check status
 Restart-Service HomeschoolBoard      # restart it
+Stop-Service HomeschoolBoard         # stop it entirely if no longer needed
 ```
 
 Logs (stdout/stderr from the Node process) go to `service.log` in the
