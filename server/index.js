@@ -30,10 +30,12 @@ const requireAuth = authEnabled
   ? basicAuth({ users: { [ADMIN_USERNAME]: ADMIN_PASSWORD }, challenge: true, realm: 'Homeschool Board' })
   : (req, res, next) => next();
 
-// Viewing (GET) stays open to anyone on the network/wall display; only
-// changes (POST/PATCH/DELETE) require the shared admin login.
+// Viewing (GET) and marking a task/chore done or undone (PATCH) stay open —
+// checking things off is meant to be frictionless for kids on the wall
+// display, with no PIN or login at all. Only creating (POST) or deleting
+// (DELETE) requires the shared admin login.
 function requireAuthForWrites(req, res, next) {
-  if (req.method === 'GET') return next();
+  if (req.method === 'GET' || req.method === 'PATCH') return next();
   return requireAuth(req, res, next);
 }
 

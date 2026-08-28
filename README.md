@@ -21,13 +21,19 @@ servers needed.
 
 If the environment variables `ADMIN_USERNAME` and `ADMIN_PASSWORD` are both
 set, the server requires that login (HTTP Basic Auth) to open `/admin` or to
-make any change (add/edit/delete a task or family item) from either view —
-viewing stays open. If they're unset, editing is wide open to anyone who can
-reach the server, which is the current setup on the home LAN deployment
-below. **Always set these before deploying anywhere reachable from the
-public internet.** The first time the wall iPad tries to add/delete/check
-off something, its browser will prompt for this login once and then
-remember it.
+**add or delete** a task or family item from either view. Viewing and
+**marking something done/undone stay open with no login at all** — checking
+off a task or chore is meant to be frictionless for kids on the wall
+display, matching its own PIN, which likewise never gates the checkbox
+itself. If the env vars are unset, editing is wide open to anyone who can
+reach the server. **Always set these before deploying anywhere reachable
+from the public internet.**
+
+Browsers don't reliably cache HTTP Basic Auth credentials across separate
+fetch calls (this bit us in practice — Safari in particular re-prompts more
+often than you'd expect), so add/delete may prompt for the login more than
+once per session on either iPad. That's a real rough edge, not a bug in
+what data it's protecting.
 
 ## Live deployment
 
