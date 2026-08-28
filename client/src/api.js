@@ -24,21 +24,52 @@ export function useSyncedState() {
   useEffect(() => {
     let cancelled = false;
     let ws;
+    let reconnectTimer;
+    let reconnectDelay = 1000;
 
-    fetch('/api/state')
-      .then((r) => r.json())
-      .then((data) => { if (!cancelled) setState(data); })
-      .catch(() => {});
+    const refreshState = () =>
+      fetch('/api/state').then((r) => r.json()).then((data) => { if (!cancelled) setState(data); }).catch(() => {});
 
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}/ws`);
-    ws.onmessage = (evt) => {
-      const msg = JSON.parse(evt.data);
-      if (msg.type === 'state') setState(msg.payload);
-    };
+    function connect() {
+      if (cancelled) return;
+      clearTimeout(reconnectTimer);
+
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+      ws.onopen = () => { reconnectDelay = 1000; };
+
+      ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        if (msg.type === 'state') setState(msg.payload);
+      };
+
+      ws.onclose = () => {
+        if (cancelled) return;
+        reconnectTimer = setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+      };
+    }
+
+    // A kiosk display can sit idle for hours; if the socket died in the
+    // background, reconnect and resync the instant someone comes back to
+    // it instead of waiting for the next backoff tick.
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+      reconnectDelay = 1000;
+      refreshState();
+      connect();
+    }
+
+    refreshState();
+    connect();
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       cancelled = true;
+      clearTimeout(reconnectTimer);
+      document.removeEventListener('visibilitychange', onVisible);
       ws.close();
     };
   }, []);
