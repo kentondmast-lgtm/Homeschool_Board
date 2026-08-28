@@ -3,6 +3,7 @@ import { useSyncedState, addTask, toggleTask, deleteTask, addFamilyItem, toggleF
 import { SUBJECTS, WEEKDAYS, dateLabel, buildMonthGrid } from '../utils.js';
 import AddTaskCard from '../components/AddTaskCard.jsx';
 import FamilyBoard from '../components/FamilyBoard.jsx';
+import AdminLoginDialog from '../components/AdminLoginDialog.jsx';
 
 export default function AdminPhone() {
   const state = useSyncedState();
@@ -10,11 +11,26 @@ export default function AdminPhone() {
   const [familyOn, setFamilyOn] = useState({});
   const [view, setView] = useState('today');
   const [now, setNow] = useState(new Date());
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
   }, []);
+
+  async function withAuth(action) {
+    try {
+      await action();
+    } catch (e) {
+      if (e.isAuthError) {
+        setPendingAction(() => action);
+        setLoginOpen(true);
+      } else {
+        throw e;
+      }
+    }
+  }
 
   const active = state ? (state.students.find((s) => s.id === activeId) || state.students[0]) : null;
   const monthGrid = useMemo(() => (active ? buildMonthGrid(now, active.week) : []), [now, active]);
@@ -96,7 +112,7 @@ export default function AdminPhone() {
                 </div>
                 <button
                   style={{ all: 'unset', cursor: 'pointer', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'color-mix(in srgb, var(--color-text) 45%, transparent)' }}
-                  onClick={() => deleteTask(active.id, t.id)}
+                  onClick={() => withAuth(() => deleteTask(active.id, t.id))}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                 </button>
@@ -112,7 +128,7 @@ export default function AdminPhone() {
               defaultDate={today}
               onSubmit={(form) => {
                 const subject = (form.newSubject || '').trim() || form.subject;
-                addTask(active.id, { subject, title: form.title, time: form.time, date: form.date });
+                withAuth(() => addTask(active.id, { subject, title: form.title, time: form.time, date: form.date }));
               }}
             />
           </>
@@ -174,10 +190,20 @@ export default function AdminPhone() {
           editable
           assigneeOptions={assigneeOptions}
           onToggleItem={(key, id, done) => toggleFamilyItem(key, id, done)}
-          onDeleteItem={(key, id) => deleteFamilyItem(key, id)}
-          onAddItem={(key, draft) => addFamilyItem(key, draft)}
+          onDeleteItem={(key, id) => withAuth(() => deleteFamilyItem(key, id))}
+          onAddItem={(key, draft) => withAuth(() => addFamilyItem(key, draft))}
         />
       </div>
+
+      {loginOpen && (
+        <AdminLoginDialog
+          onClose={() => { setLoginOpen(false); setPendingAction(null); }}
+          onSuccess={() => {
+            setLoginOpen(false);
+            if (pendingAction) { pendingAction(); setPendingAction(null); }
+          }}
+        />
+      )}
     </div>
   );
 }

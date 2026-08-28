@@ -5,6 +5,7 @@ import TaskIcon from '../components/TaskIcon.jsx';
 import PinDialog from '../components/PinDialog.jsx';
 import AddTaskDialog from '../components/AddTaskDialog.jsx';
 import FamilyBoard from '../components/FamilyBoard.jsx';
+import AdminLoginDialog from '../components/AdminLoginDialog.jsx';
 
 export default function WallDisplay() {
   const state = useSyncedState();
@@ -16,6 +17,21 @@ export default function WallDisplay() {
   const [wallAddOpen, setWallAddOpen] = useState(false);
   const [familyOn, setFamilyOn] = useState({});
   const [now, setNow] = useState(new Date());
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  async function withAuth(action) {
+    try {
+      await action();
+    } catch (e) {
+      if (e.isAuthError) {
+        setPendingAction(() => action);
+        setLoginOpen(true);
+      } else {
+        throw e;
+      }
+    }
+  }
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
@@ -141,7 +157,7 @@ export default function WallDisplay() {
                   {unlocked && (
                     <button
                       style={{ all: 'unset', cursor: 'pointer', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: muted }}
-                      onClick={() => deleteTask(active.id, t.id)}
+                      onClick={() => withAuth(() => deleteTask(active.id, t.id))}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M18 6L6 18M6 6l12 12"></path></svg>
                     </button>
@@ -212,8 +228,8 @@ export default function WallDisplay() {
             editable={unlocked}
             assigneeOptions={assigneeOptions}
             onToggleItem={(key, id, done) => toggleFamilyItem(key, id, done)}
-            onDeleteItem={(key, id) => deleteFamilyItem(key, id)}
-            onAddItem={(key, draft) => addFamilyItem(key, draft)}
+            onDeleteItem={(key, id) => withAuth(() => deleteFamilyItem(key, id))}
+            onAddItem={(key, draft) => withAuth(() => addFamilyItem(key, draft))}
           />
         </div>
       </div>
@@ -230,8 +246,18 @@ export default function WallDisplay() {
           onCancel={() => setWallAddOpen(false)}
           onSubmit={(form) => {
             const subject = (form.newSubject || '').trim() || form.subject;
-            addTask(active.id, { subject, title: form.title, time: form.time, date: form.date });
+            withAuth(() => addTask(active.id, { subject, title: form.title, time: form.time, date: form.date }));
             setWallAddOpen(false);
+          }}
+        />
+      )}
+
+      {loginOpen && (
+        <AdminLoginDialog
+          onClose={() => { setLoginOpen(false); setPendingAction(null); }}
+          onSuccess={() => {
+            setLoginOpen(false);
+            if (pendingAction) { pendingAction(); setPendingAction(null); }
           }}
         />
       )}

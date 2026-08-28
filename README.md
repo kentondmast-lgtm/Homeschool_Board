@@ -20,20 +20,24 @@ servers needed.
 ### Admin login (optional, recommended once this leaves your home network)
 
 If the environment variables `ADMIN_USERNAME` and `ADMIN_PASSWORD` are both
-set, the server requires that login (HTTP Basic Auth) to open `/admin` or to
-**add or delete** a task or family item from either view. Viewing and
-**marking something done/undone stay open with no login at all** — checking
-off a task or chore is meant to be frictionless for kids on the wall
-display, matching its own PIN, which likewise never gates the checkbox
-itself. If the env vars are unset, editing is wide open to anyone who can
-reach the server. **Always set these before deploying anywhere reachable
-from the public internet.**
+set, the server requires that login to **add or delete** a task or family
+item, from either view. Viewing, opening either page, and **marking
+something done/undone stay open with no login at all** — checking off a
+task or chore is meant to be frictionless for kids on the wall display,
+matching its own PIN, which likewise never gates the checkbox itself. If
+the env vars are unset, editing is wide open to anyone who can reach the
+server. **Always set these before deploying anywhere reachable from the
+public internet.**
 
-Browsers don't reliably cache HTTP Basic Auth credentials across separate
-fetch calls (this bit us in practice — Safari in particular re-prompts more
-often than you'd expect), so add/delete may prompt for the login more than
-once per session on either iPad. That's a real rough edge, not a bug in
-what data it's protecting.
+This is enforced per-device, not per-request: the first time a device tries
+to add/delete something, the app shows its own login dialog (not the
+browser's native one — those don't cache reliably across separate requests
+in practice, especially in Safari). Once entered, that device remembers it
+(stored in the browser's local storage) and won't ask again unless you
+clear that browser's site data. So the wall iPad should need this login at
+most once, ever, the first time someone unlocks it and adds or deletes
+something — after that it behaves as "logged in" permanently, same as
+mom's iPad.
 
 ## Live deployment
 

@@ -60,6 +60,12 @@ app.use(cors());
 app.use(express.json());
 app.use('/api', requireAuthForWrites);
 
+// Used by the login dialog to validate credentials before storing them on
+// the device — no side effects.
+app.get('/api/whoami', requireAuth, (req, res) => {
+  res.json({ ok: true });
+});
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -180,10 +186,12 @@ app.delete('/api/family/:groupKey/items/:itemId', (req, res) => {
   res.json(state);
 });
 
+// The /admin page itself loads freely, same as the wall display — it's
+// just static HTML/JS with no family data embedded. Login is enforced by
+// requireAuthForWrites above (POST/DELETE) and by the app's own in-page
+// login dialog once a protected action is attempted, not by gating the
+// page load itself.
 if (fs.existsSync(CLIENT_DIST)) {
-  app.get('/admin', requireAuth, (req, res) => {
-    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
-  });
   app.use(express.static(CLIENT_DIST));
   app.get('*', (req, res) => {
     res.sendFile(path.join(CLIENT_DIST, 'index.html'));

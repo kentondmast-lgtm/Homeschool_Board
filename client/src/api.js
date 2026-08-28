@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
+import { getAuthHeader, clearCredentials } from './auth.js';
 
 async function api(path, options) {
-  const res = await fetch(`/api${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  const headers = { 'Content-Type': 'application/json' };
+  const authHeader = getAuthHeader();
+  if (authHeader) headers.Authorization = authHeader;
+
+  const res = await fetch(`/api${path}`, { headers, ...options });
+
+  if (res.status === 401) {
+    clearCredentials();
+    const err = new Error('Admin login required');
+    err.isAuthError = true;
+    throw err;
+  }
   if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
   return res.json();
 }
