@@ -19,6 +19,13 @@ export function recurLabel(recurring) {
   return '';
 }
 
+// Night mode runs 20:00 (inclusive) through 06:00 (exclusive), based on
+// the device's own local clock.
+export function isNightTime(date) {
+  const h = date.getHours();
+  return h >= 20 || h < 6;
+}
+
 export function buildMonthGrid(now, weekPattern) {
   const year = now.getFullYear();
   const month = now.getMonth();

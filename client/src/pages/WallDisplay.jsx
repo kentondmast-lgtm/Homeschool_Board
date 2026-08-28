@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSyncedState, addTask, toggleTask, deleteTask, addFamilyItem, toggleFamilyItem, deleteFamilyItem } from '../api.js';
-import { SUBJECTS, WEEKDAYS, dateLabel, buildMonthGrid } from '../utils.js';
+import { SUBJECTS, WEEKDAYS, dateLabel, buildMonthGrid, isNightTime } from '../utils.js';
 import TaskIcon from '../components/TaskIcon.jsx';
 import PinDialog from '../components/PinDialog.jsx';
 import AddTaskDialog from '../components/AddTaskDialog.jsx';
@@ -11,7 +11,7 @@ export default function WallDisplay() {
   const state = useSyncedState();
   const [activeId, setActiveId] = useState(1);
   const [view, setView] = useState('today');
-  const [night, setNight] = useState(false);
+  const [night, setNight] = useState(() => isNightTime(new Date()));
   const [pinOpen, setPinOpen] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const [wallAddOpen, setWallAddOpen] = useState(false);
@@ -19,6 +19,19 @@ export default function WallDisplay() {
   const [now, setNow] = useState(new Date());
   const [loginOpen, setLoginOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
+  const lastNightSlot = useRef(isNightTime(new Date()));
+
+  // Auto-switch at the 20:00/06:00 boundary, but only force it when the
+  // scheduled slot actually changes -- so a manual toggle in between still
+  // sticks until the next real transition, instead of being fought on
+  // every clock tick.
+  useEffect(() => {
+    const scheduled = isNightTime(now);
+    if (scheduled !== lastNightSlot.current) {
+      lastNightSlot.current = scheduled;
+      setNight(scheduled);
+    }
+  }, [now]);
 
   async function withAuth(action) {
     try {
