@@ -77,7 +77,7 @@ export default function WallDisplay() {
   }));
 
   return (
-    <div style={{ minHeight: '100vh', background: screenBg, fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: screenBg, color: ink, fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'column' }}>
       {/* top bar: clock + lock */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '22px 28px 14px', borderBottom: '2px solid var(--color-divider)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
@@ -154,7 +154,7 @@ export default function WallDisplay() {
           {view === 'today' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {active.tasks.map((t) => (
-                <div key={t.id} className="task-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--color-surface)', opacity: t.done ? 0.55 : 1 }}>
+                <div key={t.id} className="task-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: familyBg, opacity: t.done ? 0.55 : 1 }}>
                   <TaskIcon subject={t.subject} color={active.color} background={night ? '#242220' : 'var(--color-bg)'} />
                   <div
                     onClick={() => toggleTask(active.id, t.id, !t.done)}
@@ -186,7 +186,7 @@ export default function WallDisplay() {
           {view === 'week' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
               {active.week.map((d, i) => (
-                <div key={d.label} style={{ background: 'var(--color-surface)', padding: 10, display: 'flex', flexDirection: 'column', gap: 6, outline: i === 0 ? `1.5px solid ${active.color}` : 'none' }}>
+                <div key={d.label} style={{ background: familyBg, padding: 10, display: 'flex', flexDirection: 'column', gap: 6, outline: i === 0 ? `1.5px solid ${active.color}` : 'none' }}>
                   <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase', color: muted }}>{d.label}</div>
                   {d.items.map((it, idx) => (
                     <div key={idx} style={{ fontSize: 11, padding: '4px 6px', background: screenBg, color: ink }}>{it}</div>
@@ -238,6 +238,7 @@ export default function WallDisplay() {
             familyOn={familyOn}
             onToggleCategory={(key) => setFamilyOn((f) => ({ ...f, [key]: f[key] === false }))}
             accent={familyAccent}
+            textColor={ink}
             editable={unlocked}
             assigneeOptions={assigneeOptions}
             onToggleItem={(key, id, done) => toggleFamilyItem(key, id, done)}
