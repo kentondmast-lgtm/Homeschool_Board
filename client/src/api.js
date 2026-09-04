@@ -53,12 +53,19 @@ export function useSyncedState() {
 
     // A kiosk display can sit idle for hours; if the socket died in the
     // background, reconnect and resync the instant someone comes back to
-    // it instead of waiting for the next backoff tick.
+    // it instead of waiting for the next backoff tick. Don't trust
+    // ws.readyState here -- a connection silently killed by a router/NAT/
+    // host without a close frame still reports itself as OPEN, so force a
+    // fresh connection unconditionally rather than skipping when it looks
+    // fine.
     function onVisible() {
       if (document.visibilityState !== 'visible') return;
-      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
       reconnectDelay = 1000;
       refreshState();
+      if (ws) {
+        ws.onclose = null;
+        ws.close();
+      }
       connect();
     }
 

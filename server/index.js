@@ -82,8 +82,26 @@ function persistAndBroadcast() {
 }
 
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   ws.send(JSON.stringify({ type: 'state', payload: state }));
 });
+
+// WiFi routers, NAT, and hosting infrastructure often drop an idle
+// connection silently, without ever sending a close frame -- leaving the
+// client's WebSocket reporting itself as still "open" while actually dead,
+// so it never reconnects on its own. Ping every connection periodically and
+// forcibly terminate any that didn't respond since the last ping, so the
+// client's own reconnect logic gets a real close event to react to.
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (ws.isAlive === false) return ws.terminate();
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+wss.on('close', () => clearInterval(heartbeatInterval));
 
 app.get('/api/state', (req, res) => {
   res.json(state);
